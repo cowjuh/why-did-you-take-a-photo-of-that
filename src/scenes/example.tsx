@@ -1,5 +1,14 @@
-import { makeScene2D, Img, Layout, Txt, Rect, Node } from "@motion-canvas/2d";
-import { Reference, ThreadGenerator, all, createRef, makeRef, waitFor } from "@motion-canvas/core";
+import { makeScene2D, Img, Layout, Txt, Rect, Node, Circle } from "@motion-canvas/2d";
+import {
+  Reference,
+  SimpleSignal,
+  ThreadGenerator,
+  all,
+  createRef,
+  createSignal,
+  makeRef,
+  waitFor,
+} from "@motion-canvas/core";
 import image1 from "../../images/v1/IMG_3763.png";
 import image2 from "../../images/v1/IMG_3765.png";
 import image3 from "../../images/v1/IMG_4181.png";
@@ -52,7 +61,22 @@ const imgBacklitAngel: ImageObject = {
 
 const imgNewspaper: ImageObject = {
   src: image4,
-  textDetections: [{ text: "!@8#*(*@32°?", x: -250, y: -100, width: 500, height: 400 }],
+  textDetections: [
+    { text: "!@8#*(*@32°?", x: -250, y: -100, width: 500, height: 400 },
+    { text: "!@8#*(*@32°?", x: -450, y: -100, width: 500, height: 400 },
+    { text: "!@8#*(*@32°?", x: -350, y: -100, width: 500, height: 400 },
+  ],
+  imageDetections: [{ description: "Tear", x: -700, y: 40, width: 200, height: 200 }],
+  sceneDetections: [{ description: "Analog nature" }, { description: "I can't read Chinese" }],
+};
+
+const imgPls: ImageObject = {
+  src: image6,
+  textDetections: [
+    { text: "BIG*ALL", x: -600, y: -600, width: 500, height: 200 },
+    { text: "TItTieS", x: -600, y: -400, width: 500, height: 200 },
+    { text: "pls", x: -600, y: -400, width: 500, height: 200 },
+  ],
   imageDetections: [{ description: "Tear", x: -700, y: 40, width: 200, height: 200 }],
   sceneDetections: [{ description: "Analog nature" }, { description: "I can't read Chinese" }],
 };
@@ -60,10 +84,18 @@ const imgNewspaper: ImageObject = {
 const allImages: ImageObject[] = [imgNewspaper, imgBacklitAngel];
 
 export default makeScene2D(function* (view) {
-  const { src, textDetections, imageDetections, sceneDetections } = imgNewspaper;
-  const numTextDetections = textDetections.length;
-  const numImageDetections = imageDetections.length;
-  const numSceneDetections = sceneDetections.length;
+  const imageObj: SimpleSignal<ImageObject> = createSignal(allImages[0]);
+  const src = createSignal(() => imageObj().src);
+
+  const textDetections = createSignal(() => imageObj().textDetections);
+  const imageDetections = createSignal(() => imageObj().imageDetections);
+  const sceneDetections = createSignal(() => imageObj().sceneDetections);
+
+  const numTextDetections = createSignal(allImages[0].textDetections.length);
+  const numImageDetections = createSignal(allImages[0].imageDetections.length);
+  const numSceneDetections = createSignal(allImages[0].sceneDetections.length);
+
+  const bgImgRef = createRef<Img>();
 
   // Image Detections
   const imageBoundingBoxRefs: Rect[] = [];
@@ -77,7 +109,6 @@ export default makeScene2D(function* (view) {
   const textDescriptionTextBoxRefs: Txt[] = [];
   const textDetectionContainerRefs: Rect[] = [];
 
-  const bgImgRef = createRef<Img>();
   view.add(
     <Rect offset={[-1, -1]} x={0} y={0}>
       <Img src={src} scale={0.5} ref={bgImgRef} />
@@ -87,7 +118,11 @@ export default makeScene2D(function* (view) {
         <Rect layout direction={"row"} gap={50}>
           <Rect fill={PINK} x={0} y={0} layout padding={[20, 20, 15, 20]}>
             <Txt
-              text={`${numImageDetections} image${numImageDetections === 1 ? "" : "s"}`}
+              text={() => {
+                let singular = numImageDetections() === 1;
+                let num = numImageDetections();
+                return `${num} image${singular ? "" : "s"}`;
+              }}
               fill={"#FFFFFF"}
               fontSize={30}
               fontFamily={FONT_FAMILY}
@@ -95,7 +130,11 @@ export default makeScene2D(function* (view) {
           </Rect>
           <Rect fill={LIME} x={0} y={0} layout padding={[20, 20, 15, 20]}>
             <Txt
-              text={`${numTextDetections} segment${numTextDetections === 1 ? "" : "s"}`}
+              text={() => {
+                let singular = numTextDetections() === 1;
+                let num = numTextDetections();
+                return `${num} segment${singular ? "" : "s"}`;
+              }}
               fill={"#000000"}
               fontSize={30}
               fontFamily={FONT_FAMILY}
@@ -103,7 +142,11 @@ export default makeScene2D(function* (view) {
           </Rect>
           <Rect fill={CYAN} x={0} y={0} layout padding={[20, 20, 15, 20]}>
             <Txt
-              text={`${numSceneDetections} scene${numSceneDetections === 1 ? "" : "s"}`}
+              text={() => {
+                let singular = numSceneDetections() === 1;
+                let num = numSceneDetections();
+                return `${num} scene${singular ? "" : "s"}`;
+              }}
               fill={"#000000"}
               fontSize={30}
               fontFamily={FONT_FAMILY}
@@ -111,9 +154,10 @@ export default makeScene2D(function* (view) {
           </Rect>
         </Rect>
       </Rect>
+
       {/* IMAGE DETECT BOXES */}
       <Rect>
-        {imageDetections.map((detection, i) => {
+        {imageDetections().map((detection, i) => {
           const { description, x, y, width, height } = detection;
           return (
             <Rect
@@ -155,7 +199,7 @@ export default makeScene2D(function* (view) {
       </Rect>
       {/* TEXT DETECT BOXES */}
       <Rect>
-        {textDetections.map((detection, i) => {
+        {textDetections().map((detection, i) => {
           const { text, x, y, width, height } = detection;
           return (
             <Rect
@@ -199,7 +243,7 @@ export default makeScene2D(function* (view) {
       <Rect layout offset={[-1, 1]} x={-680} y={940} direction={"column"} fontSize={40} gap={30}>
         <Txt text={"Scenes"} fontFamily={FONT_FAMILY} fill={"#FFFFFF"} />
         <Rect layout direction={"row"} gap={50}>
-          {sceneDetections.map((detection) => {
+          {sceneDetections().map((detection) => {
             return (
               <Rect fill={CYAN} x={0} y={0} layout padding={[20, 20, 15, 20]}>
                 <Txt text={detection.description} fill={"#000000"} fontSize={30} fontFamily={FONT_FAMILY} />
@@ -238,29 +282,8 @@ export default makeScene2D(function* (view) {
     return boundingBoxRef.height(0, 0);
   };
 
-  const expandImageBoundingBox = () => {
-    const obj = [];
-    for (let i = 0; i < imageBoundingBoxRefs.length; i++) {
-      const imageObj = imageBoundingBoxRefs[i].getState();
-      obj.push(imageBoundingBoxRefs[i].height(0, 0));
-      obj.push(imageBoundingBoxRefs[i].height(imageObj.size.y, 1));
-    }
-    return obj;
-  };
-
-  const loadImageDescriptionBox = () => {
-    const obj = [];
-    for (let i = 0; i < imageDescriptionBoxRefs.length; i++) {
-      const textObj = imageDescriptionTextBoxRefs[i].getState();
-      // console.log(textObj);
-      obj.push(imageDescriptionBoxRefs[i].opacity(100, 2));
-      obj.push(imageDescriptionTextBoxRefs[i].text("...", 0));
-      obj.push(imageDescriptionTextBoxRefs[i].opacity(100, 3));
-      obj.push(imageDescriptionTextBoxRefs[i].text(textObj.text, 1));
-    }
-
-    return obj;
-  };
+  //TODO: Add loader animation here
+  const animateAnalyzing = () => {};
 
   const swapImage = (newImageObject: ImageObject, imgRef: Reference<Img>) => {
     return imgRef().src(newImageObject.src);
@@ -272,57 +295,51 @@ export default makeScene2D(function* (view) {
 
       yield* initializeState();
 
+      yield* all(
+        numImageDetections(imgData.imageDetections.length, 0),
+        numTextDetections(imgData.textDetections.length, 0),
+        numSceneDetections(imgData.sceneDetections.length, 0)
+      );
+
+      // TODO: this does not need to be duplicate code
       // Image detections
-      for (let j = 0; j < imgData.imageDetections.length; j++) {
-        const curImgDetection = imgData.imageDetections[j];
-        const boundingBoxRef = imageBoundingBoxRefs[j];
-        const descriptionTextRef = imageDescriptionTextBoxRefs[j];
-        const descriptionBoxRef = imageDescriptionBoxRefs[j];
-        const detectionContainerRef = imageDetectionContainerRefs[j];
-        yield* swapImage(imgData, bgImgRef);
-        yield* all(
-          detectionContainerRef.position([curImgDetection.x, curImgDetection.y], 0),
-          detectionContainerRef.minWidth(curImgDetection.width, 0)
-        );
-        yield* all(boundingBoxRef.opacity(100, 0.5), boundingBoxRef.height(curImgDetection.height, 0.7));
-        yield* all(descriptionBoxRef.opacity(100, 0.5), descriptionTextRef.text(curImgDetection.description, 1));
+      if (imgData.imageDetections.length > 0) {
+        for (let j = 0; j < imgData.imageDetections.length; j++) {
+          let curImgDetection = imgData.imageDetections[j];
+          let boundingBoxRef = imageBoundingBoxRefs[j];
+          let descriptionTextRef = imageDescriptionTextBoxRefs[j];
+          let descriptionBoxRef = imageDescriptionBoxRefs[j];
+          let detectionContainerRef = imageDetectionContainerRefs[j];
+          yield* swapImage(imgData, bgImgRef);
+          yield* all(
+            detectionContainerRef.position([curImgDetection.x, curImgDetection.y], 0),
+            detectionContainerRef.minWidth(curImgDetection.width, 0)
+          );
+          yield* all(boundingBoxRef.opacity(100, 0.5), boundingBoxRef.height(curImgDetection.height, 0.7));
+          yield* all(descriptionBoxRef.opacity(100, 0.5), descriptionTextRef.text(curImgDetection.description, 1));
+        }
+      }
+
+      if (imgData.textDetections.length > 0) {
+        for (let k = 0; k < imgData.textDetections.length; k++) {
+          let txtCurImgDetection = imgData.textDetections[k];
+          let txtBoundingBoxRef = textBoundingBoxRefs[k];
+          let txtDescriptionTextRef = textDescriptionTextBoxRefs[k];
+          let txtDescriptionBoxRef = textDescriptionBoxRefs[k];
+          let txtDetectionContainerRef = textDetectionContainerRefs[k];
+          yield* swapImage(imgData, bgImgRef);
+          yield* all(
+            txtDetectionContainerRef.position([txtCurImgDetection.x, txtCurImgDetection.y], 0),
+            txtDetectionContainerRef.minWidth(txtCurImgDetection.width, 0)
+          );
+          yield* all(txtBoundingBoxRef.opacity(100, 0.5), txtBoundingBoxRef.height(txtCurImgDetection.height, 0.7));
+          yield* all(txtDescriptionBoxRef.opacity(100, 0.5), txtDescriptionTextRef.text(txtCurImgDetection.text, 1));
+        }
       }
       // Text detections
-      for (let j = 0; j < imgData.textDetections.length; j++) {
-        const curImgDetection = imgData.textDetections[j];
-        const boundingBoxRef = textBoundingBoxRefs[j];
-        const descriptionTextRef = textDescriptionTextBoxRefs[j];
-        const descriptionBoxRef = textDescriptionBoxRefs[j];
-        const detectionContainerRef = textDetectionContainerRefs[j];
-        yield* swapImage(imgData, bgImgRef);
-        yield* all(
-          detectionContainerRef.position([curImgDetection.x, curImgDetection.y], 0),
-          detectionContainerRef.minWidth(curImgDetection.width, 0)
-        );
-        yield* all(boundingBoxRef.opacity(100, 0.5), boundingBoxRef.height(curImgDetection.height, 0.7));
-        yield* all(descriptionBoxRef.opacity(100, 0.5), descriptionTextRef.text(curImgDetection.text, 1));
-      }
       yield* waitFor(2);
     }
   }
 
-  // for (let i = 0; i < imageDescriptionBoxRefs.length; i++) {
-  //   // Refs
-  //   const boundingBoxRef = imageBoundingBoxRefs[i];
-  //   const descriptionTextRef = imageDescriptionTextBoxRefs[i];
-  //   const descriptionBoxRef = imageDescriptionBoxRefs[i];
-
-  //   // Initial states
-  //   const boundingBoxState = boundingBoxRef.getState();
-  //   const descriptionTextState = descriptionTextRef.getState();
-  //   const descriptionBoxState = descriptionBoxRef.getState();
-
-  //   const description = imgNewspaper.imageDetections[i].description;
-
-  //   yield* all(boundingBoxRef.opacity(100, 0.5), boundingBoxRef.height(200, 0.7));
-  //   yield* all(descriptionBoxRef.opacity(100, 0.5), descriptionTextRef.text(description, 1));
-  // }
   yield* animateSingleImage();
-  // yield* swapImage(imgBacklitAngel, bgImgRef);
-  // yield* waitFor(4);
 });
